@@ -6,33 +6,28 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression, Ridge, Lasso
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import r2_score, mean_absolute_error
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.svm import SVR
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import r2_score
 
 # ---------------------------------------------------
 # PAGE CONFIG
 # ---------------------------------------------------
 st.set_page_config(
-    page_title="Employee Salary ML Dashboard",
+    page_title="Employee Salary ML Model Comparison",
     page_icon="📊",
     layout="wide"
 )
 
-# ---------------------------------------------------
-# TITLE
-# ---------------------------------------------------
-st.title("📊 Employee Salary Prediction & Model Comparison")
-st.markdown(
+st.title("📊 Employee Salary Prediction Dashboard")
+st.write(
 """
-This interactive **Machine Learning Dashboard** compares multiple regression models
-to predict **employee salary based on years of experience**.
-
-Models Used:
-- Linear Regression
-- Ridge Regression
-- Lasso Regression
+Machine Learning dashboard comparing multiple regression models  
+to determine the **best algorithm for salary prediction**.
 """
 )
 
@@ -41,212 +36,185 @@ Models Used:
 # ---------------------------------------------------
 @st.cache_data
 def load_data():
-    try:
-        df = pd.read_csv("emp_sal.csv")
-    except:
-        st.error("Dataset file 'emp_sal.csv' not found. Please upload it to the GitHub repository.")
-        st.stop()
-
-    return df
+    return pd.read_csv("emp_sal.csv")
 
 df = load_data()
 
 # ---------------------------------------------------
 # DATA PREVIEW
 # ---------------------------------------------------
-st.subheader("📂 Dataset Preview")
-
-col1, col2 = st.columns([2,1])
-
-with col1:
-    st.dataframe(df, use_container_width=True)
-
-with col2:
-    st.metric("Total Records", df.shape[0])
-    st.metric("Features", df.shape[1])
+st.subheader("Dataset Preview")
+st.dataframe(df)
 
 # ---------------------------------------------------
 # FEATURES
 # ---------------------------------------------------
-X = df[['YearsExperience']]
-y = df['Salary']
-
-# ---------------------------------------------------
-# TRAIN TEST SPLIT
-# ---------------------------------------------------
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y,
-    test_size=0.2,
-    random_state=42
-)
-
-# ---------------------------------------------------
-# FEATURE SCALING
-# ---------------------------------------------------
-scaler = StandardScaler()
-
-X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled = scaler.transform(X_test)
-
-# ---------------------------------------------------
-# MODELS
-# ---------------------------------------------------
-models = {
-    "Linear Regression": LinearRegression(),
-    "Ridge Regression": Ridge(alpha=1.0),
-    "Lasso Regression": Lasso(alpha=0.1)
-}
-
-results = []
-predictions_dict = {}
+X = df.iloc[:, 1:2].values
+y = df.iloc[:, 2].values
 
 # ---------------------------------------------------
 # TRAIN MODELS
 # ---------------------------------------------------
-for name, model in models.items():
 
-    model.fit(X_train_scaled, y_train)
+# Linear Regression
+lin_reg = LinearRegression()
+lin_reg.fit(X, y)
 
-    preds = model.predict(X_test_scaled)
+# Polynomial Regression
+poly = PolynomialFeatures(degree=5)
+X_poly = poly.fit_transform(X)
 
-    r2 = r2_score(y_test, preds)
-    mae = mean_absolute_error(y_test, preds)
+poly_reg = LinearRegression()
+poly_reg.fit(X_poly, y)
 
-    results.append({
-        "Model": name,
-        "R² Score": round(r2, 4),
-        "MAE": round(mae, 2)
-    })
+# SVR
+svr_reg = SVR(kernel="rbf")
+svr_reg.fit(X, y)
 
-    predictions_dict[name] = preds
+# KNN
+knn_reg = KNeighborsRegressor(n_neighbors=3, weights="distance")
+knn_reg.fit(X, y)
 
-results_df = pd.DataFrame(results)
+# Decision Tree
+dt_reg = DecisionTreeRegressor()
+dt_reg.fit(X, y)
+
+# Random Forest
+rf_reg = RandomForestRegressor(n_estimators=100)
+rf_reg.fit(X, y)
 
 # ---------------------------------------------------
-# MODEL PERFORMANCE
+# MODEL PREDICTIONS
 # ---------------------------------------------------
-st.subheader("📈 Model Performance Dashboard")
+test_value = np.array([[6.5]])
 
-col1, col2 = st.columns(2)
+results = {
+    "Linear Regression": lin_reg.predict(test_value)[0],
+    "Polynomial Regression": poly_reg.predict(poly.transform(test_value))[0],
+    "SVR": svr_reg.predict(test_value)[0],
+    "KNN": knn_reg.predict(test_value)[0],
+    "Decision Tree": dt_reg.predict(test_value)[0],
+    "Random Forest": rf_reg.predict(test_value)[0]
+}
 
-with col1:
+results_df = pd.DataFrame(list(results.items()), columns=["Model", "Predicted Salary"])
 
-    fig_r2 = px.bar(
-        results_df,
-        x="Model",
-        y="R² Score",
-        color="Model",
-        text="R² Score",
-        title="Model Accuracy (R² Score)"
-    )
+# ---------------------------------------------------
+# MODEL COMPARISON CHART
+# ---------------------------------------------------
+st.subheader("📊 Model Prediction Comparison")
 
-    fig_r2.update_layout(showlegend=False)
+fig = px.bar(
+    results_df,
+    x="Model",
+    y="Predicted Salary",
+    color="Model",
+    text="Predicted Salary",
+    title="Salary Prediction Comparison (Input = 6.5 Level)"
+)
 
-    st.plotly_chart(fig_r2, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True)
 
-with col2:
+# ---------------------------------------------------
+# REGRESSION CURVE VISUALIZATION
+# ---------------------------------------------------
+st.subheader("Regression Curve Visualization")
 
-    fig_mae = px.bar(
-        results_df,
-        x="Model",
-        y="MAE",
-        color="Model",
-        text="MAE",
-        title="Model Error (MAE)"
-    )
+X_grid = np.arange(min(X), max(X), 0.1).reshape(-1,1)
 
-    fig_mae.update_layout(showlegend=False)
+model_option = st.selectbox(
+    "Select Model",
+    [
+        "Linear Regression",
+        "Polynomial Regression",
+        "SVR",
+        "KNN",
+        "Decision Tree",
+        "Random Forest"
+    ]
+)
 
-    st.plotly_chart(fig_mae, use_container_width=True)
+if model_option == "Linear Regression":
+    y_pred = lin_reg.predict(X_grid)
+
+elif model_option == "Polynomial Regression":
+    y_pred = poly_reg.predict(poly.transform(X_grid))
+
+elif model_option == "SVR":
+    y_pred = svr_reg.predict(X_grid)
+
+elif model_option == "KNN":
+    y_pred = knn_reg.predict(X_grid)
+
+elif model_option == "Decision Tree":
+    y_pred = dt_reg.predict(X_grid)
+
+else:
+    y_pred = rf_reg.predict(X_grid)
+
+plot_df = pd.DataFrame({
+    "Position Level": X_grid.flatten(),
+    "Predicted Salary": y_pred
+})
+
+fig2 = px.line(
+    plot_df,
+    x="Position Level",
+    y="Predicted Salary",
+    title=f"{model_option} Regression Curve"
+)
+
+fig2.add_scatter(
+    x=X.flatten(),
+    y=y,
+    mode="markers",
+    name="Actual Data"
+)
+
+st.plotly_chart(fig2, use_container_width=True)
 
 # ---------------------------------------------------
 # MODEL RANKING
 # ---------------------------------------------------
-st.subheader("🏆 Model Leaderboard")
+st.subheader("🏆 Model Ranking")
 
-ranking = results_df.sort_values(by="R² Score", ascending=False)
+ranking = results_df.sort_values(
+    by="Predicted Salary",
+    ascending=False
+)
+
 ranking.index = ranking.index + 1
 
-st.dataframe(ranking, use_container_width=True)
-
-# ---------------------------------------------------
-# PREDICTION VS ACTUAL
-# ---------------------------------------------------
-st.subheader("📊 Prediction vs Actual")
-
-selected_model = st.selectbox(
-    "Select Model for Visualization",
-    list(predictions_dict.keys())
-)
-
-preds = predictions_dict[selected_model]
-
-comparison_df = pd.DataFrame({
-    "Actual Salary": y_test.values,
-    "Predicted Salary": preds
-})
-
-fig_compare = px.scatter(
-    comparison_df,
-    x="Actual Salary",
-    y="Predicted Salary",
-    trendline="ols",
-    title=f"{selected_model} Predictions"
-)
-
-st.plotly_chart(fig_compare, use_container_width=True)
+st.dataframe(ranking)
 
 # ---------------------------------------------------
 # SALARY PREDICTION TOOL
 # ---------------------------------------------------
 st.subheader("💰 Salary Prediction Tool")
 
-years = st.slider(
-    "Select Years of Experience",
-    0.0,
-    20.0,
-    5.0
-)
+level = st.slider("Position Level", 1.0, 10.0, 5.0)
 
-# Best Model
-best_model_name = ranking.iloc[0]["Model"]
-best_model = models[best_model_name]
+best_model = poly_reg
+prediction = best_model.predict(poly.transform([[level]]))
 
-best_model.fit(X_train_scaled, y_train)
-
-input_scaled = scaler.transform([[years]])
-
-prediction = best_model.predict(input_scaled)
-
-st.success(
-    f"Predicted Salary using **{best_model_name}** : ₹ {prediction[0]:,.2f}"
-)
+st.success(f"Predicted Salary: ₹ {prediction[0]:,.2f}")
 
 # ---------------------------------------------------
 # DOWNLOAD REPORT
 # ---------------------------------------------------
 st.subheader("📥 Download Prediction Report")
 
-report = comparison_df.copy()
-report["Model Used"] = selected_model
-
-csv = report.to_csv(index=False)
+csv = results_df.to_csv(index=False)
 
 st.download_button(
-    label="Download CSV Report",
-    data=csv,
-    file_name="salary_prediction_report.csv",
-    mime="text/csv"
+    "Download Report",
+    csv,
+    "model_predictions.csv",
+    "text/csv"
 )
 
 # ---------------------------------------------------
 # FOOTER
 # ---------------------------------------------------
 st.markdown("---")
-st.markdown(
-"""
-✅ Built with **Python, Streamlit, Scikit-learn & Plotly**
-
-Author: **Naveen Kumar**
-"""
-)
+st.markdown("Built using **Python • Streamlit • Scikit-Learn • Plotly**")
