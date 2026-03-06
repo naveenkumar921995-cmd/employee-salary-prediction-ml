@@ -1,9 +1,8 @@
-# -------------------------------------------------------
-# Employee Salary Prediction - Regression Model Comparison
-# Author: Naveen Kumar
-# -------------------------------------------------------
+# ---------------------------------------------
+# Employee Salary Prediction - ML Model Comparison
+# ---------------------------------------------
 
-# Import Libraries
+import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -17,18 +16,28 @@ from sklearn.ensemble import RandomForestRegressor
 
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
-# -------------------------------------------------------
+# ---------------------------------------------
+# Page Title
+# ---------------------------------------------
+
+st.title("Employee Salary Prediction")
+st.subheader("Regression Model Comparison Project")
+
+# ---------------------------------------------
 # Load Dataset
-# -------------------------------------------------------
+# ---------------------------------------------
 
 dataset = pd.read_csv("data/emp_sal.csv")
 
 X = dataset.iloc[:, 1:2].values
 y = dataset.iloc[:, 2].values
 
-# -------------------------------------------------------
+st.write("Dataset Preview")
+st.dataframe(dataset)
+
+# ---------------------------------------------
 # Train Models
-# -------------------------------------------------------
+# ---------------------------------------------
 
 # Linear Regression
 lin_reg = LinearRegression()
@@ -57,11 +66,15 @@ dt.fit(X, y)
 rf = RandomForestRegressor(n_estimators=100, random_state=0)
 rf.fit(X, y)
 
-# -------------------------------------------------------
-# Predictions
-# -------------------------------------------------------
+# ---------------------------------------------
+# Prediction Section
+# ---------------------------------------------
 
-test_value = [[6.5]]
+st.header("Salary Prediction")
+
+level = st.slider("Select Position Level", 1.0, 10.0, 5.0)
+
+test_value = [[level]]
 
 predictions = {
     "Linear Regression": lin_reg.predict(test_value)[0],
@@ -72,16 +85,17 @@ predictions = {
     "Random Forest": rf.predict(test_value)[0]
 }
 
-print("\nPrediction for Position Level = 6.5\n")
+pred_df = pd.DataFrame(
+    predictions.items(),
+    columns=["Model", "Predicted Salary"]
+)
 
-for model, value in predictions.items():
-    print(f"{model}: {value:.2f}")
+st.subheader("Prediction Comparison")
+st.dataframe(pred_df)
 
-# -------------------------------------------------------
+# ---------------------------------------------
 # Model Evaluation
-# -------------------------------------------------------
-
-evaluation = []
+# ---------------------------------------------
 
 models = {
     "Linear Regression": lin_reg.predict(X),
@@ -91,6 +105,8 @@ models = {
     "Decision Tree": dt.predict(X),
     "Random Forest": rf.predict(X)
 }
+
+evaluation = []
 
 for name, pred in models.items():
 
@@ -105,40 +121,70 @@ results = pd.DataFrame(
     columns=["Model", "R2 Score", "MAE", "RMSE"]
 )
 
-print("\nModel Performance Comparison\n")
-print(results)
+st.subheader("Model Performance")
+st.dataframe(results)
 
-# -------------------------------------------------------
-# Visualization
-# -------------------------------------------------------
+# ---------------------------------------------
+# Linear Regression Chart
+# ---------------------------------------------
 
-# Linear Regression Plot
-plt.scatter(X, y)
-plt.plot(X, lin_reg.predict(X))
-plt.title("Linear Regression")
-plt.xlabel("Position Level")
-plt.ylabel("Salary")
-plt.show()
+st.subheader("Linear Regression Chart")
 
-# Polynomial Regression Plot
-plt.scatter(X, y)
+fig1, ax1 = plt.subplots()
 
-X_grid = np.arange(min(X), max(X), 0.1)
-X_grid = X_grid.reshape(len(X_grid),1)
+ax1.scatter(X, y)
+ax1.plot(X, lin_reg.predict(X))
 
-plt.plot(X_grid, poly_model.predict(poly.transform(X_grid)))
+ax1.set_xlabel("Position Level")
+ax1.set_ylabel("Salary")
+ax1.set_title("Linear Regression")
 
-plt.title("Polynomial Regression")
-plt.xlabel("Position Level")
-plt.ylabel("Salary")
-plt.show()
+st.pyplot(fig1)
 
-# -------------------------------------------------------
+# ---------------------------------------------
+# Polynomial Regression Chart
+# ---------------------------------------------
+
+st.subheader("Polynomial Regression Chart")
+
+X_grid = np.arange(X.min(), X.max(), 0.1)
+X_grid = X_grid.reshape(-1, 1)
+
+fig2, ax2 = plt.subplots()
+
+ax2.scatter(X, y)
+ax2.plot(X_grid, poly_model.predict(poly.transform(X_grid)))
+
+ax2.set_xlabel("Position Level")
+ax2.set_ylabel("Salary")
+ax2.set_title("Polynomial Regression")
+
+st.pyplot(fig2)
+
+# ---------------------------------------------
 # Model Comparison Chart
-# -------------------------------------------------------
+# ---------------------------------------------
 
-plt.bar(results["Model"], results["R2 Score"])
-plt.title("Model Performance Comparison (R² Score)")
+st.subheader("Model Comparison (R² Score)")
+
+fig3, ax3 = plt.subplots()
+
+ax3.bar(results["Model"], results["R2 Score"])
+
+ax3.set_xlabel("Model")
+ax3.set_ylabel("R2 Score")
+ax3.set_title("Regression Model Comparison")
+
 plt.xticks(rotation=45)
-plt.ylabel("R² Score")
-plt.show()
+
+st.pyplot(fig3)
+
+# ---------------------------------------------
+# Best Model
+# ---------------------------------------------
+
+best_model = results.sort_values("R2 Score", ascending=False).iloc[0]
+
+st.success(
+    f"Best Model: {best_model['Model']} with R² Score = {best_model['R2 Score']:.3f}"
+)
