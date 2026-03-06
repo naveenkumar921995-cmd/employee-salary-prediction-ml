@@ -42,9 +42,9 @@ Models Used:
 @st.cache_data
 def load_data():
     try:
-        df = pd.read_csv("Salary_Data.csv")
+        df = pd.read_csv("emp_sal.csv")
     except:
-        st.error("Dataset file 'Salary_Data.csv' not found. Please upload it to the GitHub repository.")
+        st.error("Dataset file 'emp_sal.csv' not found. Please upload it to the GitHub repository.")
         st.stop()
 
     return df
