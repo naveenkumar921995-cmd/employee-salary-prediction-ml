@@ -23,7 +23,53 @@ st.set_page_config(
     page_icon="📊",
     layout="wide"
 )
+# -----------------------------
+# Custom Premium UI Theme
+# -----------------------------
+st.markdown("""
+<style>
 
+/* App background */
+.stApp {
+    background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+    color: white;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
+}
+
+/* Metric Cards */
+[data-testid="metric-container"] {
+    background: rgba(255,255,255,0.10);
+    border-radius: 15px;
+    padding: 15px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* Buttons */
+.stButton>button {
+    border-radius: 10px;
+    background: linear-gradient(45deg,#00c6ff,#0072ff);
+    color: white;
+    font-weight: bold;
+}
+
+/* Slider */
+.stSlider > div {
+    color: white;
+}
+
+/* Dataframe */
+.css-1d391kg {
+    background: rgba(255,255,255,0.05);
+}
+
+</style>
+""", unsafe_allow_html=True)
 # ---------------------------------------------------
 # GLASSMORPHISM UI
 # ---------------------------------------------------
