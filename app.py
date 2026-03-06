@@ -12,7 +12,6 @@ from sklearn.svm import SVR
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score
 
 # ---------------------------------------------------
 # PAGE CONFIG
@@ -24,9 +23,10 @@ st.set_page_config(
 )
 
 st.title("📊 Employee Salary Prediction Dashboard")
+
 st.write(
 """
-Machine Learning dashboard comparing multiple regression models  
+This interactive Machine Learning dashboard compares multiple regression models  
 to determine the **best algorithm for salary prediction**.
 """
 )
@@ -36,7 +36,8 @@ to determine the **best algorithm for salary prediction**.
 # ---------------------------------------------------
 @st.cache_data
 def load_data():
-    return pd.read_csv("emp_sal.csv")
+    df = pd.read_csv("emp_sal.csv")
+    return df
 
 df = load_data()
 
@@ -68,11 +69,11 @@ poly_reg = LinearRegression()
 poly_reg.fit(X_poly, y)
 
 # SVR
-svr_reg = SVR(kernel="rbf")
+svr_reg = SVR(kernel='rbf')
 svr_reg.fit(X, y)
 
 # KNN
-knn_reg = KNeighborsRegressor(n_neighbors=3, weights="distance")
+knn_reg = KNeighborsRegressor(n_neighbors=3, weights='distance')
 knn_reg.fit(X, y)
 
 # Decision Tree
@@ -80,11 +81,11 @@ dt_reg = DecisionTreeRegressor()
 dt_reg.fit(X, y)
 
 # Random Forest
-rf_reg = RandomForestRegressor(n_estimators=100)
+rf_reg = RandomForestRegressor(n_estimators=100, random_state=0)
 rf_reg.fit(X, y)
 
 # ---------------------------------------------------
-# MODEL PREDICTIONS
+# MODEL PREDICTIONS (test value)
 # ---------------------------------------------------
 test_value = np.array([[6.5]])
 
@@ -97,7 +98,10 @@ results = {
     "Random Forest": rf_reg.predict(test_value)[0]
 }
 
-results_df = pd.DataFrame(list(results.items()), columns=["Model", "Predicted Salary"])
+results_df = pd.DataFrame(
+    list(results.items()),
+    columns=["Model", "Predicted Salary"]
+)
 
 # ---------------------------------------------------
 # MODEL COMPARISON CHART
@@ -110,17 +114,19 @@ fig = px.bar(
     y="Predicted Salary",
     color="Model",
     text="Predicted Salary",
-    title="Salary Prediction Comparison (Input = 6.5 Level)"
+    title="Salary Prediction Comparison (Position Level = 6.5)"
 )
 
 st.plotly_chart(fig, use_container_width=True)
 
 # ---------------------------------------------------
-# REGRESSION CURVE VISUALIZATION
+# REGRESSION VISUALIZATION
 # ---------------------------------------------------
 st.subheader("Regression Curve Visualization")
 
-X_grid = np.arange(min(X), max(X), 0.1).reshape(-1,1)
+# FIXED np.arange ERROR
+X_grid = np.arange(start=X.min(), stop=X.max(), step=0.1)
+X_grid = X_grid.reshape(-1, 1)
 
 model_option = st.selectbox(
     "Select Model",
@@ -192,12 +198,18 @@ st.dataframe(ranking)
 # ---------------------------------------------------
 st.subheader("💰 Salary Prediction Tool")
 
-level = st.slider("Position Level", 1.0, 10.0, 5.0)
+level = st.slider(
+    "Select Position Level",
+    1.0,
+    10.0,
+    5.0
+)
 
-best_model = poly_reg
-prediction = best_model.predict(poly.transform([[level]]))
+prediction = poly_reg.predict(poly.transform([[level]]))
 
-st.success(f"Predicted Salary: ₹ {prediction[0]:,.2f}")
+st.success(
+    f"Estimated Salary: ₹ {prediction[0]:,.2f}"
+)
 
 # ---------------------------------------------------
 # DOWNLOAD REPORT
@@ -207,14 +219,14 @@ st.subheader("📥 Download Prediction Report")
 csv = results_df.to_csv(index=False)
 
 st.download_button(
-    "Download Report",
-    csv,
-    "model_predictions.csv",
-    "text/csv"
+    label="Download CSV Report",
+    data=csv,
+    file_name="salary_predictions.csv",
+    mime="text/csv"
 )
 
 # ---------------------------------------------------
 # FOOTER
 # ---------------------------------------------------
 st.markdown("---")
-st.markdown("Built using **Python • Streamlit • Scikit-Learn • Plotly**")
+st.markdown("Built with ❤️ using Python • Streamlit • Scikit-Learn • Plotly")
